@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Alarm Clock with Voice Commands</title>
+    <title>Enhanced Alarm Clock with Timer and Location-Based Alarms</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -45,7 +45,7 @@
             font-weight: bold;
         }
 
-        .alarm-list, .history-list {
+        .alarm-list, .history-list, .timer-list {
             margin-top: 20px;
             text-align: left;
             display: flex;
@@ -53,7 +53,7 @@
             align-items: center;
         }
 
-        .alarm-item, .history-item {
+        .alarm-item, .history-item, .timer-item {
             display: flex;
             justify-content: space-between;
             margin: 5px 0;
@@ -64,7 +64,7 @@
             max-width: 400px;
         }
 
-        .alarm-item button, .history-item button {
+        .alarm-item button, .history-item button, .timer-item button {
             background: red;
             color: white;
             border: none;
@@ -72,7 +72,7 @@
             cursor: pointer;
         }
 
-        #volume-control, #snooze-duration {
+        #volume-control, #snooze-duration, #timer-duration {
             margin-top: 10px;
             width: 100%;
             max-width: 300px;
@@ -125,11 +125,15 @@
         .color-theme {
             margin-top: 20px;
         }
+
+        .location-alarm {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Enhanced Alarm Clock with Voice Commands</h1>
+        <h1>Enhanced Alarm Clock with Timer and Location-Based Alarms</h1>
         <button id="dark-mode-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
         <button id="customize-ui" class="customize-ui-button">Customize UI</button>
         <label for="alarm-time">Set Alarm Time:</label>
@@ -168,6 +172,13 @@
         <div class="history-list" id="alarm-history">
             <h2>Alarm History</h2>
         </div>
+        <div class="timer">
+            <h2>Timer</h2>
+            <label for="timer-duration">Set Timer Duration (minutes):</label>
+            <input type="number" id="timer-duration" min="1" value="5">
+            <button id="start-timer">Start Timer</button>
+            <div class="timer-list" id="timer-list"></div>
+        </div>
         <div class="world-clock" id="world-clock">
             <h2>World Clock</h2>
             <div class="clock-item" id="new-york">New York: Loading...</div>
@@ -177,6 +188,11 @@
         <div class="calendar">
             <h2>Calendar</h2>
             <div id="calendar-container"></div>
+        </div>
+        <div class="location-alarm">
+            <h2>Location-Based Alarms</h2>
+            <button id="set-location-alarm">Set Location-Based Alarm</button>
+            <p id="location-status">No location-based alarms set.</p>
         </div>
         <div class="color-theme">
             <label for="color-theme">Select Color Theme:</label>
@@ -204,12 +220,20 @@
             const statusElement = document.getElementById('status');
             const alarmList = document.getElementById('alarm-list');
             const historyList = document.getElementById('alarm-history');
+            const timerDurationInput = document.getElementById('timer-duration');
+            const startTimerButton = document.getElementById('start-timer');
+            const timerList = document.getElementById('timer-list');
+            const locationAlarmButton = document.getElementById('set-location-alarm');
+            const locationStatusElement = document.getElementById('location-status');
             const worldClock = document.getElementById('world-clock');
             const calendarContainer = document.getElementById('calendar-container');
 
             let alarms = [];
             let alarmHistory = [];
+            let timers = [];
+            let locationAlarm = null;
             let alarmInterval = null;
+            let timerInterval = null;
             let isDarkMode = false;
             let currentTheme = 'default';
 
@@ -231,12 +255,20 @@
                             alarmLabelInput.value = labelMatch[1];
                             setAlarmButton.click();
                         }
+                    } else if (command.includes('start timer')) {
+                        const timeMatch = command.match(/for (\d+) minutes/);
+                        if (timeMatch) {
+                            timerDurationInput.value = timeMatch[1];
+                            startTimerButton.click();
+                        }
                     } else if (command.includes('show history')) {
                         updateAlarmHistory();
                     } else if (command.includes('toggle dark mode')) {
                         darkModeToggle.click();
                     } else if (command.includes('customize ui')) {
                         customizeUIButton.click();
+                    } else if (command.includes('set location alarm')) {
+                        locationAlarmButton.click();
                     }
                 };
 
@@ -300,7 +332,7 @@
                                 updateAlarmList();
                             }, alarm.snoozeDuration * 60000); 
                         } else {
-                            alarms[index].time = null;
+                            alarms[index].time = null; 
                         }
                         updateAlarmList();
                     }
@@ -345,58 +377,89 @@
                 updateAlarmList();
             }
 
-            function updateWorldClock() {
-                const timezones = {
-                    'new-york': 'America/New_York',
-                    'london': 'Europe/London',
-                    'tokyo': 'Asia/Tokyo'
-                };
-                Object.keys(timezones).forEach(id => {
-                    const timeZone = timezones[id];
-                    const now = new Date().toLocaleString('en-US', { timeZone });
-                    document.getElementById(id).textContent = `${id.replace('-', ' ').toUpperCase()}: ${now}`;
+            function startTimer(duration) {
+                const endTime = Date.now() + duration * 60000; 
+                const timerItem = document.createElement('div');
+                timerItem.className = 'timer-item';
+                timerItem.innerHTML = `
+                    <span>Timer for ${duration} minutes</span>
+                    <button onclick="removeTimer('${endTime}')">Remove</button>
+                `;
+                timerList.appendChild(timerItem);
+
+                timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    if (now >= endTime) {
+                        playSound('sound1.mp3', 0.5); 
+                        alert('Timer completed!');
+                        clearInterval(timerInterval);
+                        updateTimers();
+                    }
+                }, 1000); 
+            }
+
+            function updateTimers() {
+                const now = Date.now();
+                document.querySelectorAll('.timer-item').forEach(item => {
+                    const endTime = parseInt(item.querySelector('button').getAttribute('data-end-time'));
+                    if (now >= endTime) {
+                        item.remove();
+                    }
                 });
             }
 
-            function loadCalendar() {
-                const calendar = document.createElement('iframe');
-                calendar.src = "https://calendar.google.com/calendar/embed?src=YOUR_CALENDAR_ID&ctz=YOUR_TIMEZONE";
-                calendar.style.width = '100%';
-                calendar.style.height = '600px';
-                calendar.style.border = '0';
-                calendarContainer.appendChild(calendar);
+            function removeTimer(endTime) {
+                clearInterval(timerInterval);
+                document.querySelector(`.timer-item button[data-end-time="${endTime}"]`).parentElement.remove();
             }
 
-            setAlarmButton.addEventListener('click', function() {
-                const time = alarmTimeInput.value;
-                const sound = alarmSoundSelect.value;
-                const label = alarmLabelInput.value;
-                const volume = volumeControl.value;
-                const repeat = repeatOptions.value;
-                const snoozeDuration = parseInt(snoozeDurationInput.value, 10);
-
-                const specificDays = {
-                    0: document.getElementById('sunday').checked,
-                    1: document.getElementById('monday').checked,
-                    2: document.getElementById('tuesday').checked,
-                    3: document.getElementById('wednesday').checked,
-                    4: document.getElementById('thursday').checked,
-                    5: document.getElementById('friday').checked,
-                    6: document.getElementById('saturday').checked
-                };
-
-                if (time) {
-                    alarms.push({ time, sound, label, volume, repeat, snoozeDuration, specificDays, day: new Date().getDay() });
-                    statusElement.textContent = `Alarm set for ${time} with label "${label}".`;
-                    updateAlarmList();
-                    if (alarmInterval) {
-                        clearInterval(alarmInterval);
+            function checkLocationAlarms(position) {
+                const { latitude, longitude } = position.coords;
+                if (locationAlarm) {
+                    const withinRadius = Math.abs(latitude - locationAlarm.lat) < 0.1 && Math.abs(longitude - locationAlarm.lon) < 0.1;
+                    if (withinRadius) {
+                        playSound(locationAlarm.sound, locationAlarm.volume);
+                        alert(`Location alarm triggered: ${locationAlarm.label}`);
+                        locationStatusElement.textContent = 'Location alarm triggered.';
+                        locationAlarm = null; 
                     }
-                    alarmInterval = setInterval(checkAlarms, 60000); 
+                }
+            }
+
+            function setupLocationAlarm() {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(function(position) {
+                        const lat = position.coords.latitude;
+                        const lon = position.coords.longitude;
+
+                        locationAlarm = {
+                            lat,
+                            lon,
+                            sound: 'sound1.mp3',
+                            volume: 0.5,
+                            label: 'Location Alarm'
+                        };
+
+                        locationStatusElement.textContent = `Location alarm set for coordinates: ${lat}, ${lon}`;
+                        navigator.geolocation.watchPosition(checkLocationAlarms);
+                    }, function(error) {
+                        console.error('Error getting location:', error);
+                    });
+                } else {
+                    locationStatusElement.textContent = 'Geolocation not supported.';
+                }
+            }
+
+            startTimerButton.addEventListener('click', function() {
+                const duration = parseInt(timerDurationInput.value, 10);
+                if (duration > 0) {
+                    startTimer(duration);
                 }
             });
 
-            window.removeAlarm = removeAlarm; 
+            locationAlarmButton.addEventListener('click', function() {
+                setupLocationAlarm();
+            });
 
             updateWorldClock();
             setInterval(updateWorldClock, 60000);
