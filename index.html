@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Alarm Clock with Sleep Tracking</title>
+    <title>Enhanced Alarm Clock with Customizable Tones</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -122,27 +122,36 @@
             text-align: left;
         }
 
-        .color-theme {
+        #color-theme {
             margin-top: 20px;
         }
 
-        .location-alarm {
+        #upload-tone {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #upload-tone input[type="file"] {
+            margin: 10px 0;
+        }
+
+        #uploaded-tones {
             margin-top: 20px;
+            text-align: left;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Enhanced Alarm Clock with Sleep Tracking</h1>
+        <h1>Enhanced Alarm Clock with Customizable Tones</h1>
         <button id="dark-mode-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
         <button id="customize-ui" class="customize-ui-button">Customize UI</button>
         <label for="alarm-time">Set Alarm Time:</label>
         <input type="time" id="alarm-time">
         <label for="alarm-sound">Choose Alarm Sound:</label>
         <select id="alarm-sound">
-            <option value="sound1.mp3">Sound 1</option>
-            <option value="sound2.mp3">Sound 2</option>
-            <option value="sound3.mp3">Sound 3</option>
         </select>
         <label for="alarm-label">Alarm Label:</label>
         <input type="text" id="alarm-label" placeholder="Enter alarm label">
@@ -203,6 +212,13 @@
                 <option value="red">Red</option>
             </select>
         </div>
+        <div id="upload-tone">
+            <h2>Upload Custom Alarm Tones</h2>
+            <input type="file" id="tone-upload" accept="audio/*">
+            <div id="uploaded-tones">
+                <h3>Uploaded Tones</h3>
+            </div>
+        </div>
         <div class="sleep-tracking">
             <h2>Sleep Tracking</h2>
             <label for="sleep-time">Sleep Time:</label>
@@ -220,7 +236,7 @@
         </div>
     </div>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', () => {
             const setAlarmButton = document.getElementById('set-alarm');
             const alarmTimeInput = document.getElementById('alarm-time');
             const alarmSoundSelect = document.getElementById('alarm-sound');
@@ -243,6 +259,11 @@
             const logSleepButton = document.getElementById('log-sleep');
             const sleepList = document.getElementById('sleep-list');
             const averageSleepElement = document.getElementById('average-sleep');
+            const toneUploadInput = document.getElementById('tone-upload');
+            const uploadedTonesDiv = document.getElementById('uploaded-tones');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const customizeUIButton = document.getElementById('customize-ui');
+            const colorThemeSelect = document.getElementById('color-theme');
 
             let alarms = [];
             let alarmHistory = [];
@@ -251,8 +272,8 @@
             let alarmInterval = null;
             let timerInterval = null;
             let sleepRecords = [];
+            let uploadedTones = [];
             let isDarkMode = false;
-            let currentTheme = 'default';
 
             function playSound(sound, volume) {
                 const audio = new Audio(sound);
@@ -279,7 +300,7 @@
                             setTimeout(() => {
                                 alarms[index].time = addMinutesToTime(currentTime, alarm.snoozeDuration);
                                 updateAlarmList();
-                            }, alarm.snoozeDuration * 60000);
+                            }, alarm.snoozeDuration * 60000); 
                         } else {
                             alarms[index].time = null; 
                         }
@@ -339,12 +360,12 @@
                 timerInterval = setInterval(() => {
                     const now = Date.now();
                     if (now >= endTime) {
-                        playSound('sound1.mp3', 0.5);
+                        playSound('sound1.mp3', 0.5); 
                         alert('Timer completed!');
                         clearInterval(timerInterval);
                         updateTimers();
                     }
-                }, 1000);
+                }, 1000); 
             }
 
             function updateTimers() {
@@ -411,7 +432,7 @@
                     wakeDate.setDate(wakeDate.getDate() + 1);
                 }
 
-                const duration = (wakeDate - sleepDate) / 60000;
+                const duration = (wakeDate - sleepDate) / 60000; 
                 return duration;
             }
 
@@ -480,6 +501,7 @@
             function toggleDarkMode() {
                 document.body.classList.toggle('dark-mode');
                 document.querySelector('.container').classList.toggle('dark-mode');
+                updateWorldClock();
             }
 
             function customizeUI() {
@@ -526,9 +548,27 @@
                 customizeUIButton.addEventListener('click', customizeUI);
                 repeatOptions.addEventListener('change', updateRepeatOptions);
 
-                setInterval(updateWorldClock, 1000); 
+                setInterval(updateWorldClock, 1000);
 
                 loadCalendar();
+
+                toneUploadInput.addEventListener('change', handleToneUpload);
+            }
+
+            function handleToneUpload(event) {
+                const files = event.target.files;
+                Array.from(files).forEach(file => {
+                    const url = URL.createObjectURL(file);
+                    uploadedTones.push(url);
+                    const option = document.createElement('option');
+                    option.value = url;
+                    option.textContent = file.name;
+                    alarmSoundSelect.appendChild(option);
+
+                    const toneItem = document.createElement('div');
+                    toneItem.textContent = file.name;
+                    uploadedTonesDiv.appendChild(toneItem);
+                });
             }
 
             setupEventListeners();
