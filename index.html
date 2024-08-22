@@ -45,7 +45,7 @@
             font-weight: bold;
         }
 
-        .alarm-list {
+        .alarm-list, .history-list {
             margin-top: 20px;
             text-align: left;
             display: flex;
@@ -53,7 +53,7 @@
             align-items: center;
         }
 
-        .alarm-item {
+        .alarm-item, .history-item {
             display: flex;
             justify-content: space-between;
             margin: 5px 0;
@@ -64,7 +64,7 @@
             max-width: 400px;
         }
 
-        .alarm-item button {
+        .alarm-item button, .history-item button {
             background: red;
             color: white;
             border: none;
@@ -87,7 +87,7 @@
             margin-top: 10px;
         }
 
-        .world-clock {
+        .world-clock, .calendar {
             margin-top: 20px;
             text-align: left;
             display: flex;
@@ -95,7 +95,7 @@
             align-items: center;
         }
 
-        .clock-item {
+        .clock-item, .calendar-item {
             margin: 5px;
             padding: 5px;
             background: #f8f8f8;
@@ -104,7 +104,7 @@
             max-width: 300px;
         }
 
-        .clock-item.dark-mode {
+        .clock-item.dark-mode, .calendar-item.dark-mode {
             background: #555;
         }
 
@@ -113,6 +113,13 @@
             padding: 10px;
             font-size: 16px;
             cursor: pointer;
+        }
+
+        #calendar-container {
+            margin-top: 20px;
+            width: 100%;
+            max-width: 500px;
+            text-align: left;
         }
     </style>
 </head>
@@ -153,11 +160,18 @@
         <button id="set-alarm">Set Alarm</button>
         <p id="status">No alarms set.</p>
         <div class="alarm-list" id="alarm-list"></div>
+        <div class="history-list" id="alarm-history">
+            <h2>Alarm History</h2>
+        </div>
         <div class="world-clock" id="world-clock">
             <h2>World Clock</h2>
             <div class="clock-item" id="new-york">New York: Loading...</div>
             <div class="clock-item" id="london">London: Loading...</div>
             <div class="clock-item" id="tokyo">Tokyo: Loading...</div>
+        </div>
+        <div class="calendar">
+            <h2>Calendar</h2>
+            <div id="calendar-container"></div>
         </div>
     </div>
     <script>
@@ -173,9 +187,12 @@
             const darkModeToggle = document.getElementById('dark-mode-toggle');
             const statusElement = document.getElementById('status');
             const alarmList = document.getElementById('alarm-list');
+            const historyList = document.getElementById('alarm-history');
             const worldClock = document.getElementById('world-clock');
+            const calendarContainer = document.getElementById('calendar-container');
 
             let alarms = [];
+            let alarmHistory = [];
             let alarmInterval = null;
             let isDarkMode = false;
 
@@ -183,7 +200,7 @@
                 isDarkMode = !isDarkMode;
                 document.body.classList.toggle('dark-mode', isDarkMode);
                 document.querySelector('.container').classList.toggle('dark-mode', isDarkMode);
-                document.querySelectorAll('.clock-item').forEach(item => {
+                document.querySelectorAll('.clock-item, .calendar-item').forEach(item => {
                     item.classList.toggle('dark-mode', isDarkMode);
                 });
             });
@@ -211,6 +228,8 @@
                     if (shouldTrigger) {
                         playSound(alarm.sound, alarm.volume);
                         alert(`Alarm ringing: ${alarm.label}`);
+                        alarmHistory.push({ ...alarm, triggeredAt: now.toLocaleString() });
+                        updateAlarmHistory();
                         if (alarm.snoozeDuration > 0) {
                             setTimeout(() => {
                                 alarms[index].time = addMinutesToTime(currentTime, alarm.snoozeDuration);
@@ -245,6 +264,18 @@
                 });
             }
 
+            function updateAlarmHistory() {
+                historyList.innerHTML = '';
+                alarmHistory.forEach((entry, index) => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'history-item';
+                    historyItem.innerHTML = `
+                        <span>${entry.triggeredAt} - ${entry.time} (${entry.sound}) - ${entry.label}</span>
+                    `;
+                    historyList.appendChild(historyItem);
+                });
+            }
+
             function removeAlarm(index) {
                 alarms.splice(index, 1);
                 updateAlarmList();
@@ -261,6 +292,15 @@
                     const now = new Date().toLocaleString('en-US', { timeZone });
                     document.getElementById(id).textContent = `${id.replace('-', ' ').toUpperCase()}: ${now}`;
                 });
+            }
+
+            function loadCalendar() {
+                const calendar = document.createElement('iframe');
+                calendar.src = "https://calendar.google.com/calendar/embed?src=YOUR_CALENDAR_ID&ctz=YOUR_TIMEZONE";
+                calendar.style.width = '100%';
+                calendar.style.height = '600px';
+                calendar.style.border = '0';
+                calendarContainer.appendChild(calendar);
             }
 
             setAlarmButton.addEventListener('click', function() {
@@ -288,7 +328,7 @@
                     if (alarmInterval) {
                         clearInterval(alarmInterval);
                     }
-                    alarmInterval = setInterval(checkAlarms, 60000); 
+                    alarmInterval = setInterval(checkAlarms, 60000);
                 }
             });
 
@@ -296,6 +336,8 @@
 
             updateWorldClock();
             setInterval(updateWorldClock, 60000);
+
+            loadCalendar();
         });
     </script>
 </body>
