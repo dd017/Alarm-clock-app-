@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Alarm Clock with Customizable Tones</title>
+    <title>Enhanced Alarm Clock with Notifications and Reminders</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -141,13 +141,22 @@
             margin-top: 20px;
             text-align: left;
         }
+
+        #reminder-time {
+            margin-top: 10px;
+        }
+
+        #reminder-message {
+            margin-top: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Enhanced Alarm Clock with Customizable Tones</h1>
+        <h1>Enhanced Alarm Clock with Notifications and Reminders</h1>
         <button id="dark-mode-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
         <button id="customize-ui" class="customize-ui-button">Customize UI</button>
+
         <label for="alarm-time">Set Alarm Time:</label>
         <input type="time" id="alarm-time">
         <label for="alarm-sound">Choose Alarm Sound:</label>
@@ -178,9 +187,7 @@
         <button id="set-alarm">Set Alarm</button>
         <p id="status">No alarms set.</p>
         <div class="alarm-list" id="alarm-list"></div>
-        <div class="history-list" id="alarm-history">
-            <h2>Alarm History</h2>
-        </div>
+
         <div class="timer">
             <h2>Timer</h2>
             <label for="timer-duration">Set Timer Duration (minutes):</label>
@@ -188,21 +195,25 @@
             <button id="start-timer">Start Timer</button>
             <div class="timer-list" id="timer-list"></div>
         </div>
+
         <div class="world-clock" id="world-clock">
             <h2>World Clock</h2>
             <div class="clock-item" id="new-york">New York: Loading...</div>
             <div class="clock-item" id="london">London: Loading...</div>
             <div class="clock-item" id="tokyo">Tokyo: Loading...</div>
         </div>
+
         <div class="calendar">
             <h2>Calendar</h2>
             <div id="calendar-container"></div>
         </div>
+
         <div class="location-alarm">
             <h2>Location-Based Alarms</h2>
             <button id="set-location-alarm">Set Location-Based Alarm</button>
             <p id="location-status">No location-based alarms set.</p>
         </div>
+        
         <div class="color-theme">
             <label for="color-theme">Select Color Theme:</label>
             <select id="color-theme">
@@ -212,6 +223,7 @@
                 <option value="red">Red</option>
             </select>
         </div>
+    
         <div id="upload-tone">
             <h2>Upload Custom Alarm Tones</h2>
             <input type="file" id="tone-upload" accept="audio/*">
@@ -219,6 +231,7 @@
                 <h3>Uploaded Tones</h3>
             </div>
         </div>
+
         <div class="sleep-tracking">
             <h2>Sleep Tracking</h2>
             <label for="sleep-time">Sleep Time:</label>
@@ -229,12 +242,21 @@
             <div class="sleep-list" id="sleep-list">
                 <h2>Sleep Records</h2>
             </div>
-            <div id="sleep-summary">
-                <h2>Sleep Summary</h2>
-                <p id="average-sleep">Average Sleep Duration: --</p>
+            <p id="average-sleep">Average Sleep Duration: --</p>
+        </div>
+
+        <div class="reminders">
+            <h2>Reminders</h2>
+            <label for="reminder-time">Reminder Time:</label>
+            <input type="datetime-local" id="reminder-time">
+            <label for="reminder-message">Reminder Message:</label>
+            <input type="text" id="reminder-message" placeholder="Enter reminder message">
+            <button id="set-reminder">Set Reminder</button>
+            <div class="reminder-list" id="reminder-list">
             </div>
         </div>
     </div>
+    
     <script>
         document.addEventListener('DOMContentLoaded', () => {
             const setAlarmButton = document.getElementById('set-alarm');
@@ -264,6 +286,10 @@
             const darkModeToggle = document.getElementById('dark-mode-toggle');
             const customizeUIButton = document.getElementById('customize-ui');
             const colorThemeSelect = document.getElementById('color-theme');
+            const reminderTimeInput = document.getElementById('reminder-time');
+            const reminderMessageInput = document.getElementById('reminder-message');
+            const setReminderButton = document.getElementById('set-reminder');
+            const reminderList = document.getElementById('reminder-list');
 
             let alarms = [];
             let alarmHistory = [];
@@ -273,6 +299,7 @@
             let timerInterval = null;
             let sleepRecords = [];
             let uploadedTones = [];
+            let reminders = [];
             let isDarkMode = false;
 
             function playSound(sound, volume) {
@@ -294,6 +321,7 @@
                     if (shouldTrigger) {
                         playSound(alarm.sound, alarm.volume);
                         alert(`Alarm ringing: ${alarm.label}`);
+                        sendNotification(`Alarm ringing: ${alarm.label}`, `Alarm time: ${alarm.time}`);
                         alarmHistory.push({ ...alarm, triggeredAt: now.toLocaleString() });
                         updateAlarmHistory();
                         if (alarm.snoozeDuration > 0) {
@@ -305,6 +333,19 @@
                             alarms[index].time = null; 
                         }
                         updateAlarmList();
+                    }
+                });
+            }
+
+            function checkReminders() {
+                const now = new Date();
+                reminders.forEach((reminder, index) => {
+                    const reminderTime = new Date(reminder.time);
+                    if (now >= reminderTime) {
+                        alert(`Reminder: ${reminder.message}`);
+                        sendNotification(`Reminder: ${reminder.message}`, `Reminder time: ${reminder.time}`);
+                        reminders.splice(index, 1);
+                        updateReminderList();
                     }
                 });
             }
@@ -342,13 +383,31 @@
                 });
             }
 
+            function updateReminderList() {
+                reminderList.innerHTML = '';
+                reminders.forEach((reminder, index) => {
+                    const reminderItem = document.createElement('div');
+                    reminderItem.className = 'reminder-item';
+                    reminderItem.innerHTML = `
+                        <span>${reminder.time} - ${reminder.message}</span>
+                        <button onclick="removeReminder(${index})">Remove</button>
+                    `;
+                    reminderList.appendChild(reminderItem);
+                });
+            }
+
             function removeAlarm(index) {
                 alarms.splice(index, 1);
                 updateAlarmList();
             }
 
+            function removeReminder(index) {
+                reminders.splice(index, 1);
+                updateReminderList();
+            }
+
             function startTimer(duration) {
-                const endTime = Date.now() + duration * 60000;
+                const endTime = Date.now() + duration * 60000; 
                 const timerItem = document.createElement('div');
                 timerItem.className = 'timer-item';
                 timerItem.innerHTML = `
@@ -362,6 +421,7 @@
                     if (now >= endTime) {
                         playSound('sound1.mp3', 0.5); 
                         alert('Timer completed!');
+                        sendNotification('Timer completed!', 'Your timer has finished.');
                         clearInterval(timerInterval);
                         updateTimers();
                     }
@@ -390,6 +450,7 @@
                     if (withinRadius) {
                         playSound(locationAlarm.sound, locationAlarm.volume);
                         alert(`Location alarm triggered: ${locationAlarm.label}`);
+                        sendNotification(`Location alarm triggered: ${locationAlarm.label}`, `Location: ${latitude}, ${longitude}`);
                         locationStatusElement.textContent = 'Location alarm triggered.';
                         locationAlarm = null; 
                     }
@@ -410,30 +471,12 @@
                             label: 'Location Alarm'
                         };
 
-                        locationStatusElement.textContent = `Location alarm set for coordinates: ${lat}, ${lon}`;
-                        navigator.geolocation.watchPosition(checkLocationAlarms);
-                    }, function(error) {
-                        console.error('Error getting location:', error);
-                    });
+                        locationStatusElement.textContent = `Location alarm set for ${lat}, ${lon}.`;
+                        navigator.geolocation.watchPosition(checkLocationAlarms, console.error, { enableHighAccuracy: true });
+                    }, console.error);
                 } else {
-                    locationStatusElement.textContent = 'Geolocation not supported.';
+                    alert('Geolocation is not supported by this browser.');
                 }
-            }
-
-            function calculateSleepDuration(sleepTime, wakeTime) {
-                const [sleepHours, sleepMinutes] = sleepTime.split(':').map(Number);
-                const [wakeHours, wakeMinutes] = wakeTime.split(':').map(Number);
-                const sleepDate = new Date();
-                const wakeDate = new Date();
-                sleepDate.setHours(sleepHours, sleepMinutes, 0);
-                wakeDate.setHours(wakeHours, wakeMinutes, 0);
-
-                if (wakeDate < sleepDate) {
-                    wakeDate.setDate(wakeDate.getDate() + 1);
-                }
-
-                const duration = (wakeDate - sleepDate) / 60000; 
-                return duration;
             }
 
             function logSleep() {
@@ -441,33 +484,33 @@
                 const wakeTime = wakeTimeInput.value;
 
                 if (sleepTime && wakeTime) {
-                    const duration = calculateSleepDuration(sleepTime, wakeTime);
+                    const sleepStart = new Date(`1970-01-01T${sleepTime}:00`);
+                    const sleepEnd = new Date(`1970-01-01T${wakeTime}:00`);
+                    let duration = (sleepEnd - sleepStart) / (1000 * 60); 
+                    if (duration < 0) duration += 1440; 
                     sleepRecords.push({ sleepTime, wakeTime, duration });
-                    updateSleepRecords();
-                    updateSleepSummary();
-                } else {
-                    alert('Please enter both sleep and wake times.');
+                    updateSleepList();
                 }
             }
 
-            function updateSleepRecords() {
+            function updateSleepList() {
                 sleepList.innerHTML = '';
-                sleepRecords.forEach((record, index) => {
+                sleepRecords.forEach(record => {
                     const sleepItem = document.createElement('div');
                     sleepItem.className = 'sleep-item';
                     sleepItem.innerHTML = `
-                        <span>Sleep: ${record.sleepTime}, Wake: ${record.wakeTime} - Duration: ${record.duration} mins</span>
+                        <span>${record.sleepTime} - ${record.wakeTime} (${record.duration.toFixed(2)} mins)</span>
                     `;
                     sleepList.appendChild(sleepItem);
                 });
+                updateAverageSleep();
             }
 
-            function updateSleepSummary() {
+            function updateAverageSleep() {
                 if (sleepRecords.length === 0) {
                     averageSleepElement.textContent = 'Average Sleep Duration: --';
                     return;
                 }
-
                 const totalDuration = sleepRecords.reduce((sum, record) => sum + record.duration, 0);
                 const averageDuration = totalDuration / sleepRecords.length;
                 averageSleepElement.textContent = `Average Sleep Duration: ${averageDuration.toFixed(2)} mins`;
@@ -496,6 +539,18 @@
                     .catch(error => {
                         console.error('Error fetching calendar data:', error);
                     });
+            }
+
+            function sendNotification(title, body) {
+                if (Notification.permission === 'granted') {
+                    new Notification(title, { body });
+                } else if (Notification.permission !== 'denied') {
+                    Notification.requestPermission().then(permission => {
+                        if (permission === 'granted') {
+                            new Notification(title, { body });
+                        }
+                    });
+                }
             }
 
             function toggleDarkMode() {
@@ -544,15 +599,27 @@
 
                 logSleepButton.addEventListener('click', logSleep);
 
+                setReminderButton.addEventListener('click', () => {
+                    const reminderTime = reminderTimeInput.value;
+                    const reminderMessage = reminderMessageInput.value;
+                    if (reminderTime && reminderMessage) {
+                        reminders.push({ time: new Date(reminderTime).toISOString(), message: reminderMessage });
+                        updateReminderList();
+                    }
+                });
+
                 darkModeToggle.addEventListener('click', toggleDarkMode);
                 customizeUIButton.addEventListener('click', customizeUI);
                 repeatOptions.addEventListener('change', updateRepeatOptions);
 
-                setInterval(updateWorldClock, 1000);
-
+                setInterval(updateWorldClock, 1000); 
                 loadCalendar();
 
                 toneUploadInput.addEventListener('change', handleToneUpload);
+
+                if (Notification.permission === 'default') {
+                    Notification.requestPermission();
+                }
             }
 
             function handleToneUpload(event) {
