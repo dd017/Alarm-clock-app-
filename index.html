@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Basic Alarm Clock</title>
+    <title>Enhanced Alarm Clock</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -34,45 +34,116 @@
             margin-top: 10px;
             font-weight: bold;
         }
+
+        .alarm-list {
+            margin-top: 20px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .alarm-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+            background: #f8f8f8;
+            border-radius: 5px;
+        }
+
+        .alarm-item button {
+            background: red;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Alarm Clock</h1>
+        <h1>Enhanced Alarm Clock</h1>
         <label for="alarm-time">Set Alarm Time:</label>
         <input type="time" id="alarm-time">
+        <label for="alarm-sound">Choose Alarm Sound:</label>
+        <select id="alarm-sound">
+            <option value="sound1">Sound 1</option>
+            <option value="sound2">Sound 2</option>
+            <option value="sound3">Sound 3</option>
+        </select>
         <button id="set-alarm">Set Alarm</button>
-        <p id="status">No alarm set.</p>
+        <p id="status">No alarms set.</p>
+        <div class="alarm-list" id="alarm-list"></div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const setAlarmButton = document.getElementById('set-alarm');
             const alarmTimeInput = document.getElementById('alarm-time');
+            const alarmSoundSelect = document.getElementById('alarm-sound');
             const statusElement = document.getElementById('status');
+            const alarmList = document.getElementById('alarm-list');
 
-            let alarmTime = null;
+            let alarms = [];
             let alarmInterval = null;
 
-            function checkAlarm() {
+            const sounds = {
+                'sound1': 'alarm1.mp3',
+                'sound2': 'alarm2.mp3',
+                'sound3': 'alarm3.mp3'
+            };
+
+            function playSound(sound) {
+                const audio = new Audio(sound);
+                audio.play();
+            }
+
+            function checkAlarms() {
                 const now = new Date();
                 const currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
-                if (alarmTime === currentTime) {
-                    alert('Alarm ringing!');
-                    alarmTime = null;
-                    statusElement.textContent = 'No alarm set.';
-                }
+                alarms.forEach(alarm => {
+                    if (alarm.time === currentTime) {
+                        playSound(sounds[alarm.sound]);
+                        alert('Alarm ringing!');
+                        alarm.time = null;
+                        updateAlarmList();
+                    }
+                });
+            }
+
+            function updateAlarmList() {
+                alarmList.innerHTML = '';
+                alarms.forEach((alarm, index) => {
+                    const alarmItem = document.createElement('div');
+                    alarmItem.className = 'alarm-item';
+                    alarmItem.innerHTML = `
+                        <span>${alarm.time} (${alarm.sound})</span>
+                        <button onclick="removeAlarm(${index})">Remove</button>
+                    `;
+                    alarmList.appendChild(alarmItem);
+                });
+            }
+
+            function removeAlarm(index) {
+                alarms.splice(index, 1);
+                updateAlarmList();
             }
 
             setAlarmButton.addEventListener('click', function() {
-                alarmTime = alarmTimeInput.value;
-                if (alarmTime) {
-                    statusElement.textContent = `Alarm set for ${alarmTime}.`;
+                const time = alarmTimeInput.value;
+                const sound = alarmSoundSelect.value;
+                if (time) {
+                    alarms.push({ time, sound });
+                    statusElement.textContent = `Alarm set for ${time}.`;
+                    updateAlarmList();
                     if (alarmInterval) {
                         clearInterval(alarmInterval);
                     }
-                    alarmInterval = setInterval(checkAlarm, 60000); // Check every minute
+                    alarmInterval = setInterval(checkAlarms, 60000); 
                 }
             });
+
+            window.removeAlarm = removeAlarm;
         });
     </script>
 </body>
