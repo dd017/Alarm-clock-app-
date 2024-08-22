@@ -87,7 +87,7 @@
             margin-top: 10px;
         }
 
-        .world-clock, .calendar {
+        .world-clock, .calendar, .sleep-tracking {
             margin-top: 20px;
             text-align: left;
             display: flex;
@@ -127,10 +127,6 @@
         }
 
         .location-alarm {
-            margin-top: 20px;
-        }
-
-        .sleep-tracking {
             margin-top: 20px;
         }
     </style>
@@ -285,7 +281,7 @@
                                 updateAlarmList();
                             }, alarm.snoozeDuration * 60000);
                         } else {
-                            alarms[index].time = null;
+                            alarms[index].time = null; 
                         }
                         updateAlarmList();
                     }
@@ -331,7 +327,7 @@
             }
 
             function startTimer(duration) {
-                const endTime = Date.now() + duration * 60000; 
+                const endTime = Date.now() + duration * 60000;
                 const timerItem = document.createElement('div');
                 timerItem.className = 'timer-item';
                 timerItem.innerHTML = `
@@ -348,7 +344,7 @@
                         clearInterval(timerInterval);
                         updateTimers();
                     }
-                }, 1000); 
+                }, 1000);
             }
 
             function updateTimers() {
@@ -403,46 +399,6 @@
                 }
             }
 
-            startTimerButton.addEventListener('click', function() {
-                const duration = parseInt(timerDurationInput.value, 10);
-                if (duration > 0) {
-                    startTimer(duration);
-                }
-            });
-
-            locationAlarmButton.addEventListener('click', function() {
-                setupLocationAlarm();
-            });
-
-            updateWorldClock();
-            setInterval(updateWorldClock, 60000);
-
-            loadCalendar();
-
-            darkModeToggle.addEventListener('click', function() {
-                isDarkMode = !isDarkMode;
-                document.body.classList.toggle('dark-mode', isDarkMode);
-                document.querySelector('.container').classList.toggle('dark-mode', isDarkMode);
-                document.querySelectorAll('.clock-item, .calendar-item').forEach(item => {
-                    item.classList.toggle('dark-mode', isDarkMode);
-                });
-            });
-
-            customizeUIButton.addEventListener('click', function() {
-                alert('Customize UI feature coming soon!');
-            });
-
-            repeatOptions.addEventListener('change', function() {
-                specificDaysDiv.style.display = repeatOptions.value === 'specific' ? 'block' : 'none';
-            });
-
-            colorThemeSelect.addEventListener('change', function() {
-                const theme = colorThemeSelect.value;
-                document.body.classList.remove(currentTheme);
-                document.body.classList.add(theme);
-                currentTheme = theme;
-            });
-
             function calculateSleepDuration(sleepTime, wakeTime) {
                 const [sleepHours, sleepMinutes] = sleepTime.split(':').map(Number);
                 const [wakeHours, wakeMinutes] = wakeTime.split(':').map(Number);
@@ -455,7 +411,7 @@
                     wakeDate.setDate(wakeDate.getDate() + 1);
                 }
 
-                const duration = (wakeDate - sleepDate) / 60000; // Duration in minutes
+                const duration = (wakeDate - sleepDate) / 60000;
                 return duration;
             }
 
@@ -496,8 +452,6 @@
                 averageSleepElement.textContent = `Average Sleep Duration: ${averageDuration.toFixed(2)} mins`;
             }
 
-            logSleepButton.addEventListener('click', logSleep);
-
             function updateWorldClock() {
                 const now = new Date();
                 document.getElementById('new-york').textContent = `New York: ${now.toLocaleString('en-US', { timeZone: 'America/New_York' })}`;
@@ -522,6 +476,62 @@
                         console.error('Error fetching calendar data:', error);
                     });
             }
+
+            function toggleDarkMode() {
+                document.body.classList.toggle('dark-mode');
+                document.querySelector('.container').classList.toggle('dark-mode');
+            }
+
+            function customizeUI() {
+                const colorTheme = document.getElementById('color-theme').value;
+                document.body.style.backgroundColor = colorTheme === 'default' ? '' : colorTheme;
+            }
+
+            function updateRepeatOptions() {
+                specificDaysDiv.style.display = repeatOptions.value === 'specific' ? 'block' : 'none';
+            }
+
+            function setupEventListeners() {
+                setAlarmButton.addEventListener('click', () => {
+                    const time = alarmTimeInput.value;
+                    const sound = alarmSoundSelect.value;
+                    const label = alarmLabelInput.value;
+                    const volume = volumeControl.value;
+                    const repeat = repeatOptions.value;
+                    const snoozeDuration = snoozeDurationInput.value;
+                    const specificDays = {
+                        0: document.getElementById('sunday').checked,
+                        1: document.getElementById('monday').checked,
+                        2: document.getElementById('tuesday').checked,
+                        3: document.getElementById('wednesday').checked,
+                        4: document.getElementById('thursday').checked,
+                        5: document.getElementById('friday').checked,
+                        6: document.getElementById('saturday').checked
+                    };
+
+                    alarms.push({ time, sound, label, volume, repeat, snoozeDuration, specificDays });
+                    updateAlarmList();
+                });
+
+                startTimerButton.addEventListener('click', () => {
+                    const duration = parseInt(timerDurationInput.value, 10);
+                    startTimer(duration);
+                });
+
+                locationAlarmButton.addEventListener('click', setupLocationAlarm);
+
+                logSleepButton.addEventListener('click', logSleep);
+
+                darkModeToggle.addEventListener('click', toggleDarkMode);
+                customizeUIButton.addEventListener('click', customizeUI);
+                repeatOptions.addEventListener('change', updateRepeatOptions);
+
+                setInterval(updateWorldClock, 1000); 
+
+                loadCalendar();
+            }
+
+            setupEventListeners();
         });
     </script>
 </body>
