@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Enhanced Alarm Clock</title>
+    <title>Enhanced Alarm Clock with Voice Commands</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -108,7 +108,7 @@
             background: #555;
         }
 
-        .dark-mode-toggle {
+        .dark-mode-toggle, .customize-ui-button {
             margin-top: 10px;
             padding: 10px;
             font-size: 16px;
@@ -121,12 +121,17 @@
             max-width: 500px;
             text-align: left;
         }
+
+        .color-theme {
+            margin-top: 20px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Enhanced Alarm Clock</h1>
+        <h1>Enhanced Alarm Clock with Voice Commands</h1>
         <button id="dark-mode-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
+        <button id="customize-ui" class="customize-ui-button">Customize UI</button>
         <label for="alarm-time">Set Alarm Time:</label>
         <input type="time" id="alarm-time">
         <label for="alarm-sound">Choose Alarm Sound:</label>
@@ -173,6 +178,15 @@
             <h2>Calendar</h2>
             <div id="calendar-container"></div>
         </div>
+        <div class="color-theme">
+            <label for="color-theme">Select Color Theme:</label>
+            <select id="color-theme">
+                <option value="default">Default</option>
+                <option value="blue">Blue</option>
+                <option value="green">Green</option>
+                <option value="red">Red</option>
+            </select>
+        </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -185,6 +199,8 @@
             const snoozeDurationInput = document.getElementById('snooze-duration');
             const specificDaysDiv = document.getElementById('specific-days');
             const darkModeToggle = document.getElementById('dark-mode-toggle');
+            const customizeUIButton = document.getElementById('customize-ui');
+            const colorThemeSelect = document.getElementById('color-theme');
             const statusElement = document.getElementById('status');
             const alarmList = document.getElementById('alarm-list');
             const historyList = document.getElementById('alarm-history');
@@ -195,6 +211,43 @@
             let alarmHistory = [];
             let alarmInterval = null;
             let isDarkMode = false;
+            let currentTheme = 'default';
+
+            function setupVoiceCommands() {
+                const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+                recognition.lang = 'en-US';
+                recognition.interimResults = false;
+                recognition.maxAlternatives = 1;
+
+                recognition.onresult = function(event) {
+                    const command = event.results[0][0].transcript.toLowerCase();
+                    console.log('Voice command:', command);
+
+                    if (command.includes('set alarm')) {
+                        const timeMatch = command.match(/at (\d{1,2}:\d{2})/);
+                        const labelMatch = command.match(/label (.+)/);
+                        if (timeMatch && labelMatch) {
+                            alarmTimeInput.value = timeMatch[1];
+                            alarmLabelInput.value = labelMatch[1];
+                            setAlarmButton.click();
+                        }
+                    } else if (command.includes('show history')) {
+                        updateAlarmHistory();
+                    } else if (command.includes('toggle dark mode')) {
+                        darkModeToggle.click();
+                    } else if (command.includes('customize ui')) {
+                        customizeUIButton.click();
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                };
+
+                recognition.start();
+            }
+
+            setupVoiceCommands();
 
             darkModeToggle.addEventListener('click', function() {
                 isDarkMode = !isDarkMode;
@@ -205,8 +258,19 @@
                 });
             });
 
+            customizeUIButton.addEventListener('click', function() {
+                alert('Customize UI feature coming soon!');
+            });
+
             repeatOptions.addEventListener('change', function() {
                 specificDaysDiv.style.display = repeatOptions.value === 'specific' ? 'block' : 'none';
+            });
+
+            colorThemeSelect.addEventListener('change', function() {
+                const theme = colorThemeSelect.value;
+                document.body.classList.remove(currentTheme);
+                document.body.classList.add(theme);
+                currentTheme = theme;
             });
 
             function playSound(sound, volume) {
@@ -236,7 +300,7 @@
                                 updateAlarmList();
                             }, alarm.snoozeDuration * 60000); 
                         } else {
-                            alarms[index].time = null; 
+                            alarms[index].time = null;
                         }
                         updateAlarmList();
                     }
@@ -328,7 +392,7 @@
                     if (alarmInterval) {
                         clearInterval(alarmInterval);
                     }
-                    alarmInterval = setInterval(checkAlarms, 60000);
+                    alarmInterval = setInterval(checkAlarms, 60000); 
                 }
             });
 
