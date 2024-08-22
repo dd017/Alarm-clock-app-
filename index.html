@@ -11,8 +11,13 @@
             justify-content: center;
             align-items: center;
             height: 100vh;
-            background-color: #f0f0f0;
             margin: 0;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        body.dark-mode {
+            background-color: #333;
+            color: #f0f0f0;
         }
 
         .container {
@@ -21,6 +26,11 @@
             padding: 20px;
             border-radius: 10px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            transition: background 0.3s;
+        }
+
+        .container.dark-mode {
+            background: #444;
         }
 
         button {
@@ -71,11 +81,45 @@
         #repeat-options {
             margin-top: 10px;
         }
+
+        #specific-days {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .world-clock {
+            margin-top: 20px;
+            text-align: left;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .clock-item {
+            margin: 5px;
+            padding: 5px;
+            background: #f8f8f8;
+            border-radius: 5px;
+            width: 100%;
+            max-width: 300px;
+        }
+
+        .clock-item.dark-mode {
+            background: #555;
+        }
+
+        .dark-mode-toggle {
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Enhanced Alarm Clock</h1>
+        <button id="dark-mode-toggle" class="dark-mode-toggle">Toggle Dark Mode</button>
         <label for="alarm-time">Set Alarm Time:</label>
         <input type="time" id="alarm-time">
         <label for="alarm-sound">Choose Alarm Sound:</label>
@@ -95,7 +139,7 @@
             <option value="weekly">Weekly</option>
             <option value="specific">Specific Days</option>
         </select>
-        <div id="specific-days" style="display: none;">
+        <div id="specific-days">
             <label><input type="checkbox" id="monday"> Monday</label>
             <label><input type="checkbox" id="tuesday"> Tuesday</label>
             <label><input type="checkbox" id="wednesday"> Wednesday</label>
@@ -109,6 +153,12 @@
         <button id="set-alarm">Set Alarm</button>
         <p id="status">No alarms set.</p>
         <div class="alarm-list" id="alarm-list"></div>
+        <div class="world-clock" id="world-clock">
+            <h2>World Clock</h2>
+            <div class="clock-item" id="new-york">New York: Loading...</div>
+            <div class="clock-item" id="london">London: Loading...</div>
+            <div class="clock-item" id="tokyo">Tokyo: Loading...</div>
+        </div>
     </div>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -120,18 +170,26 @@
             const repeatOptions = document.getElementById('repeat-options');
             const snoozeDurationInput = document.getElementById('snooze-duration');
             const specificDaysDiv = document.getElementById('specific-days');
+            const darkModeToggle = document.getElementById('dark-mode-toggle');
             const statusElement = document.getElementById('status');
             const alarmList = document.getElementById('alarm-list');
+            const worldClock = document.getElementById('world-clock');
 
             let alarms = [];
             let alarmInterval = null;
+            let isDarkMode = false;
+
+            darkModeToggle.addEventListener('click', function() {
+                isDarkMode = !isDarkMode;
+                document.body.classList.toggle('dark-mode', isDarkMode);
+                document.querySelector('.container').classList.toggle('dark-mode', isDarkMode);
+                document.querySelectorAll('.clock-item').forEach(item => {
+                    item.classList.toggle('dark-mode', isDarkMode);
+                });
+            });
 
             repeatOptions.addEventListener('change', function() {
-                if (repeatOptions.value === 'specific') {
-                    specificDaysDiv.style.display = 'block';
-                } else {
-                    specificDaysDiv.style.display = 'none';
-                }
+                specificDaysDiv.style.display = repeatOptions.value === 'specific' ? 'block' : 'none';
             });
 
             function playSound(sound, volume) {
@@ -159,7 +217,7 @@
                                 updateAlarmList();
                             }, alarm.snoozeDuration * 60000); 
                         } else {
-                            alarms[index].time = null;
+                            alarms[index].time = null; 
                         }
                         updateAlarmList();
                     }
@@ -192,6 +250,19 @@
                 updateAlarmList();
             }
 
+            function updateWorldClock() {
+                const timezones = {
+                    'new-york': 'America/New_York',
+                    'london': 'Europe/London',
+                    'tokyo': 'Asia/Tokyo'
+                };
+                Object.keys(timezones).forEach(id => {
+                    const timeZone = timezones[id];
+                    const now = new Date().toLocaleString('en-US', { timeZone });
+                    document.getElementById(id).textContent = `${id.replace('-', ' ').toUpperCase()}: ${now}`;
+                });
+            }
+
             setAlarmButton.addEventListener('click', function() {
                 const time = alarmTimeInput.value;
                 const sound = alarmSoundSelect.value;
@@ -222,6 +293,9 @@
             });
 
             window.removeAlarm = removeAlarm; 
+
+            updateWorldClock();
+            setInterval(updateWorldClock, 60000);
         });
     </script>
 </body>
