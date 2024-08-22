@@ -61,11 +61,15 @@
             padding: 5px 10px;
             cursor: pointer;
         }
-        
-        #volume-control {
+
+        #volume-control, #snooze-duration {
             margin-top: 10px;
             width: 100%;
             max-width: 300px;
+        }
+
+        #repeat-options {
+            margin-top: 10px;
         }
     </style>
 </head>
@@ -84,6 +88,24 @@
         <input type="text" id="alarm-label" placeholder="Enter alarm label">
         <label for="volume-control">Alarm Volume:</label>
         <input type="range" id="volume-control" min="0" max="1" step="0.1" value="0.5">
+        <label for="repeat-options">Repeat:</label>
+        <select id="repeat-options">
+            <option value="none">Never</option>
+            <option value="daily">Daily</option>
+            <option value="weekly">Weekly</option>
+            <option value="specific">Specific Days</option>
+        </select>
+        <div id="specific-days" style="display: none;">
+            <label><input type="checkbox" id="monday"> Monday</label>
+            <label><input type="checkbox" id="tuesday"> Tuesday</label>
+            <label><input type="checkbox" id="wednesday"> Wednesday</label>
+            <label><input type="checkbox" id="thursday"> Thursday</label>
+            <label><input type="checkbox" id="friday"> Friday</label>
+            <label><input type="checkbox" id="saturday"> Saturday</label>
+            <label><input type="checkbox" id="sunday"> Sunday</label>
+        </div>
+        <label for="snooze-duration">Snooze Duration (minutes):</label>
+        <input type="number" id="snooze-duration" min="1" value="5">
         <button id="set-alarm">Set Alarm</button>
         <p id="status">No alarms set.</p>
         <div class="alarm-list" id="alarm-list"></div>
@@ -95,11 +117,22 @@
             const alarmSoundSelect = document.getElementById('alarm-sound');
             const alarmLabelInput = document.getElementById('alarm-label');
             const volumeControl = document.getElementById('volume-control');
+            const repeatOptions = document.getElementById('repeat-options');
+            const snoozeDurationInput = document.getElementById('snooze-duration');
+            const specificDaysDiv = document.getElementById('specific-days');
             const statusElement = document.getElementById('status');
             const alarmList = document.getElementById('alarm-list');
 
             let alarms = [];
             let alarmInterval = null;
+
+            repeatOptions.addEventListener('change', function() {
+                if (repeatOptions.value === 'specific') {
+                    specificDaysDiv.style.display = 'block';
+                } else {
+                    specificDaysDiv.style.display = 'none';
+                }
+            });
 
             function playSound(sound, volume) {
                 const audio = new Audio(sound);
@@ -111,13 +144,34 @@
                 const now = new Date();
                 const currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
                 alarms.forEach((alarm, index) => {
-                    if (alarm.time === currentTime) {
+                    const shouldTrigger = alarm.time === currentTime &&
+                        (alarm.repeat === 'none' ||
+                        (alarm.repeat === 'daily') ||
+                        (alarm.repeat === 'weekly' && now.getDay() === alarm.day) ||
+                        (alarm.repeat === 'specific' && alarm.specificDays[now.getDay()]));
+
+                    if (shouldTrigger) {
                         playSound(alarm.sound, alarm.volume);
                         alert(`Alarm ringing: ${alarm.label}`);
-                        alarms[index].time = null;
+                        if (alarm.snoozeDuration > 0) {
+                            setTimeout(() => {
+                                alarms[index].time = addMinutesToTime(currentTime, alarm.snoozeDuration);
+                                updateAlarmList();
+                            }, alarm.snoozeDuration * 60000); 
+                        } else {
+                            alarms[index].time = null;
+                        }
                         updateAlarmList();
                     }
                 });
+            }
+
+            function addMinutesToTime(time, minutes) {
+                const [hours, mins] = time.split(':').map(Number);
+                const date = new Date();
+                date.setHours(hours);
+                date.setMinutes(mins + minutes);
+                return date.getHours() + ':' + String(date.getMinutes()).padStart(2, '0');
             }
 
             function updateAlarmList() {
@@ -126,7 +180,7 @@
                     const alarmItem = document.createElement('div');
                     alarmItem.className = 'alarm-item';
                     alarmItem.innerHTML = `
-                        <span>${alarm.time} (${alarm.sound}) - ${alarm.label}</span>
+                        <span>${alarm.time} (${alarm.sound}) - ${alarm.label} ${alarm.repeat !== 'none' ? `- ${alarm.repeat}` : ''}</span>
                         <button onclick="removeAlarm(${index})">Remove</button>
                     `;
                     alarmList.appendChild(alarmItem);
@@ -143,9 +197,21 @@
                 const sound = alarmSoundSelect.value;
                 const label = alarmLabelInput.value;
                 const volume = volumeControl.value;
+                const repeat = repeatOptions.value;
+                const snoozeDuration = parseInt(snoozeDurationInput.value, 10);
+
+                const specificDays = {
+                    0: document.getElementById('sunday').checked,
+                    1: document.getElementById('monday').checked,
+                    2: document.getElementById('tuesday').checked,
+                    3: document.getElementById('wednesday').checked,
+                    4: document.getElementById('thursday').checked,
+                    5: document.getElementById('friday').checked,
+                    6: document.getElementById('saturday').checked
+                };
 
                 if (time) {
-                    alarms.push({ time, sound, label, volume });
+                    alarms.push({ time, sound, label, volume, repeat, snoozeDuration, specificDays, day: new Date().getDay() });
                     statusElement.textContent = `Alarm set for ${time} with label "${label}".`;
                     updateAlarmList();
                     if (alarmInterval) {
