@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Basic Alarm Clock</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+            margin: 0;
+        }
+
+        .container {
+            text-align: center;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #status {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Alarm Clock</h1>
+        <label for="alarm-time">Set Alarm Time:</label>
+        <input type="time" id="alarm-time">
+        <button id="set-alarm">Set Alarm</button>
+        <p id="status">No alarm set.</p>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const setAlarmButton = document.getElementById('set-alarm');
+            const alarmTimeInput = document.getElementById('alarm-time');
+            const statusElement = document.getElementById('status');
+
+            let alarmTime = null;
+            let alarmInterval = null;
+
+            function checkAlarm() {
+                const now = new Date();
+                const currentTime = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0');
+                if (alarmTime === currentTime) {
+                    alert('Alarm ringing!');
+                    alarmTime = null;
+                    statusElement.textContent = 'No alarm set.';
+                }
+            }
+
+            setAlarmButton.addEventListener('click', function() {
+                alarmTime = alarmTimeInput.value;
+                if (alarmTime) {
+                    statusElement.textContent = `Alarm set for ${alarmTime}.`;
+                    if (alarmInterval) {
+                        clearInterval(alarmInterval);
+                    }
+                    alarmInterval = setInterval(checkAlarm, 60000); // Check every minute
+                }
+            });
+        });
+    </script>
+</body>
+</html>
